@@ -32,6 +32,20 @@ const defaultPivotState = {
   // cols: ['legal_name'], // Replace 'defaultColField' with your actual field name
   aggregatorName: 'Count', // Replace with your desired aggregator
   vals: [],
+  valueFilter: {
+    created_dt: { 'defaultValue': true },
+    data_source_modified_dt: { 'defaultValue': true },
+    entity_type: { 'defaultValue': true },
+    operating_status: { 'defaultValue': true },
+    legal_name: { 'defaultValue': true },
+    dba_name: { 'defaultValue': true },
+    physical_address: { 'defaultValue': true },
+    phone: { 'defaultValue': true },
+    usdot_number: { 'defaultValue': true },
+    mc_mx_ff_number: { 'defaultValue': true },
+    power_units: { 'defaultValue': true },
+    out_of_service_date: { 'defaultValue': true },
+  },
 };
 const RANGE = "FMSCA_records (2)"; // Adjust the range based on your data
 
