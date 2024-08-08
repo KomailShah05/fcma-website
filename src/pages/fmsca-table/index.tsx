@@ -172,6 +172,7 @@ export default function FMCATable() {
   // Reset pivot table state to default
   const resetTemplate = () => {
     setPivotState(defaultPivotState);
+    localStorage.removeItem('pivotTableState');
   };
 
 
