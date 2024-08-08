@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import {
   Box,
+  Button,
   CircularProgress,
   Paper,
   TableContainer,
@@ -20,13 +21,39 @@ import AppFooter from "../../components/fmsca-table/AppFooter";
 
 // constants
 import { COLUMNS_TO_INCLUDE } from "../../config/constants";
-
 // styles
 import "react-pivottable/pivottable.css";
-
+import Plot from 'react-plotly.js';
+import createPlotlyRenderers from 'react-pivottable/PlotlyRenderers';
+import { aggregatorTemplates } from "react-pivottable/Utilities";
 interface RowData {
   [key: string]: string;
 }
+
+type AggregatorName = [
+  "count" |
+  "uniques" |
+  "sum" |
+  "extremes" |
+  "quantile" |
+  "runningStat" |
+  "sumOverSum" |
+  "fractionOf" |
+  "countUnique" |
+  "listUnique" |
+  "max" |
+  "min" |
+  "first" |
+  "last" |
+  "median" |
+  "average" |
+  "var" |
+  "stdev"
+]
+
+console.log("test aggregators", Object.keys(aggregatorTemplates))
+
+const aggregators = Object.keys(aggregatorTemplates)
 
 const defaultPivotState = {
   rows: [
@@ -59,6 +86,7 @@ const defaultPivotState = {
     power_units: { defaultValue: true },
     out_of_service_date: { defaultValue: true },
   },
+
 };
 const RANGE = "FMSCA_records (2)";
 
@@ -72,8 +100,12 @@ export default function FMCATable() {
   const [paginatedData, setPaginatedData] = useState<RowData[]>([]);
 
   const apiKey = process.env.REACT_APP_API_KEY;
-
+  const PlotlyRenderers = createPlotlyRenderers(Plot);
   // Fetch data from the spreadsheet
+
+
+
+
   const fetchData = async () => {
     try {
       setIsDataLoading(true);
@@ -130,6 +162,55 @@ export default function FMCATable() {
     // eslint-disable-next-line
   }, []);
 
+  // Save pivot table state to local storage
+  const saveTemplate = () => {
+    localStorage.setItem('pivotTableState', JSON.stringify(pivotState));
+    console.log("saved pivotState", pivotState)
+    alert("Template saved!");
+  };
+
+  // Reset pivot table state to default
+  const resetTemplate = () => {
+    setPivotState(defaultPivotState);
+  };
+
+
+
+
+
+
+  // Check for saved state in local storage
+  useEffect(() => {
+    const savedState = localStorage.getItem('pivotTableState');
+
+    console.log("saved state loading", savedState)
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+
+      if (parsedState.aggregatorName && aggregators[parsedState.aggregatorName]) {
+        setPivotState(parsedState);
+      } else {
+        console.error("Invalid aggregatorName in saved state. Reverting to default.");
+        setPivotState(defaultPivotState); // Use default state if invalid
+      }
+    }
+  }, []);
+
+  // Handle page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // This is required for some browsers to show the prompt
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+
   // Update page number
   const handlePageChange = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -184,6 +265,30 @@ export default function FMCATable() {
   return (
     <>
       <TopAppBar />
+      <Box
+        sx={{
+          padding: "8px",
+          display: 'flex',
+          justifyContent: 'flex-end', // Aligns buttons to the right
+          position: 'relative',
+        }}
+      >
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={saveTemplate}
+          sx={{ marginRight: "8px" }}
+        >
+          Save Template
+        </Button>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={resetTemplate}
+        >
+          Reset
+        </Button>
+      </Box>
       <Box sx={{ margin: "2.5rem 2rem 2rem" }}>
         <Paper sx={{ width: "100%", overflow: "hidden" }}>
           <TableContainer
@@ -209,6 +314,7 @@ export default function FMCATable() {
             ) : (
               <>
                 <PivotTableUI
+                  unusedOrientationCutoff={200}
                   data={pivotData}
                   onChange={(s: any) => {
                     const newState = { ...s };
@@ -216,7 +322,9 @@ export default function FMCATable() {
                     setPivotState(newState);
                   }}
                   {...pivotState}
-                  renderers={{ ...TableRenderers }}
+                  renderers={Object.assign({}, TableRenderers, PlotlyRenderers)}
+                  plotlyOptions={{ width: 1600 }}
+
                 />
                 <TablePagination
                   rowsPerPageOptions={[10, 25, 100]}
