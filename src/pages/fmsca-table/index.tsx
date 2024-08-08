@@ -23,37 +23,37 @@ import AppFooter from "../../components/fmsca-table/AppFooter";
 import { COLUMNS_TO_INCLUDE } from "../../config/constants";
 // styles
 import "react-pivottable/pivottable.css";
-import Plot from 'react-plotly.js';
-import createPlotlyRenderers from 'react-pivottable/PlotlyRenderers';
+import Plot from "react-plotly.js";
+import createPlotlyRenderers from "react-pivottable/PlotlyRenderers";
 import { aggregatorTemplates } from "react-pivottable/Utilities";
 interface RowData {
   [key: string]: string;
 }
 
 type AggregatorName = [
-  "count" |
-  "uniques" |
-  "sum" |
-  "extremes" |
-  "quantile" |
-  "runningStat" |
-  "sumOverSum" |
-  "fractionOf" |
-  "countUnique" |
-  "listUnique" |
-  "max" |
-  "min" |
-  "first" |
-  "last" |
-  "median" |
-  "average" |
-  "var" |
-  "stdev"
-]
+  | "count"
+  | "uniques"
+  | "sum"
+  | "extremes"
+  | "quantile"
+  | "runningStat"
+  | "sumOverSum"
+  | "fractionOf"
+  | "countUnique"
+  | "listUnique"
+  | "max"
+  | "min"
+  | "first"
+  | "last"
+  | "median"
+  | "average"
+  | "var"
+  | "stdev"
+];
 
-console.log("test aggregators", Object.keys(aggregatorTemplates))
+console.log("test aggregators", Object.keys(aggregatorTemplates));
 
-const aggregators = Object.keys(aggregatorTemplates)
+const aggregators = Object.keys(aggregatorTemplates);
 
 const defaultPivotState = {
   rows: [
@@ -86,7 +86,6 @@ const defaultPivotState = {
     power_units: { defaultValue: true },
     out_of_service_date: { defaultValue: true },
   },
-
 };
 const RANGE = "FMSCA_records (2)";
 
@@ -102,9 +101,6 @@ export default function FMCATable() {
   const apiKey = process.env.REACT_APP_API_KEY;
   const PlotlyRenderers = createPlotlyRenderers(Plot);
   // Fetch data from the spreadsheet
-
-
-
 
   const fetchData = async () => {
     try {
@@ -164,36 +160,30 @@ export default function FMCATable() {
 
   // Save pivot table state to local storage
   const saveTemplate = () => {
-    localStorage.setItem('pivotTableState', JSON.stringify(pivotState));
-    console.log("saved pivotState", pivotState)
+    localStorage.setItem("pivotTableState", JSON.stringify(pivotState));
+    console.log("saved pivotState", pivotState);
     alert("Template saved!");
   };
 
   // Reset pivot table state to default
   const resetTemplate = () => {
     setPivotState(defaultPivotState);
-    localStorage.removeItem('pivotTableState');
+    localStorage.removeItem("pivotTableState");
   };
-
-
-
-
-
 
   // Check for saved state in local storage
   useEffect(() => {
-    const savedState = localStorage.getItem('pivotTableState');
+    const savedState = localStorage.getItem("pivotTableState");
 
-    console.log("saved state loading", savedState)
+    console.log("saved state loading", savedState);
     if (savedState) {
       const parsedState = JSON.parse(savedState);
 
-      if (parsedState.aggregatorName && aggregators[parsedState.aggregatorName]) {
+      if (parsedState) {
         setPivotState(parsedState);
-      } else {
-        console.error("Invalid aggregatorName in saved state. Reverting to default.");
-        setPivotState(defaultPivotState); // Use default state if invalid
+        return;
       }
+      setPivotState(defaultPivotState); // Use default state if invalid
     }
   }, []);
 
@@ -204,13 +194,12 @@ export default function FMCATable() {
       e.returnValue = ""; // This is required for some browsers to show the prompt
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
-
 
   // Update page number
   const handlePageChange = (
@@ -239,6 +228,7 @@ export default function FMCATable() {
     });
   }, [data, filters]);
 
+  console.log("pivotState", pivotState);
   useEffect(() => {
     const start = page * rowsPerPage;
     const end = start + rowsPerPage;
@@ -269,9 +259,9 @@ export default function FMCATable() {
       <Box
         sx={{
           padding: "8px",
-          display: 'flex',
-          justifyContent: 'flex-end', // Aligns buttons to the right
-          position: 'relative',
+          display: "flex",
+          justifyContent: "flex-end", // Aligns buttons to the right
+          position: "relative",
         }}
       >
         <Button
@@ -282,11 +272,7 @@ export default function FMCATable() {
         >
           Save Template
         </Button>
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={resetTemplate}
-        >
+        <Button variant="contained" color="secondary" onClick={resetTemplate}>
           Reset
         </Button>
       </Box>
@@ -320,12 +306,15 @@ export default function FMCATable() {
                   onChange={(s: any) => {
                     const newState = { ...s };
                     delete newState.data;
+                    delete newState["aggregators"];
+                    delete newState["renderers"];
+                    delete newState["rendererOptions"];
+                    delete newState["localeStrings"];
                     setPivotState(newState);
                   }}
                   {...pivotState}
                   renderers={Object.assign({}, TableRenderers, PlotlyRenderers)}
                   plotlyOptions={{ width: 1600 }}
-
                 />
                 <TablePagination
                   rowsPerPageOptions={[10, 25, 100]}
