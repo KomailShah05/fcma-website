@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import {
   Box,
+  Button,
   CircularProgress,
   Paper,
   TableContainer,
@@ -17,13 +18,14 @@ import { format } from "date-fns";
 import TopAppBar from "../../components/fmsca-table/AppBar";
 import TableRenderers from "react-pivottable/TableRenderers";
 import AppFooter from "../../components/fmsca-table/AppFooter";
+import { useLocation } from "react-router-dom";
 
 // constants
 import { COLUMNS_TO_INCLUDE } from "../../config/constants";
-
 // styles
 import "react-pivottable/pivottable.css";
-
+import Plot from "react-plotly.js";
+import createPlotlyRenderers from "react-pivottable/PlotlyRenderers";
 interface RowData {
   [key: string]: string;
 }
@@ -63,6 +65,13 @@ const defaultPivotState = {
 const RANGE = "FMSCA_records (2)";
 
 export default function FMCATable() {
+  const location = useLocation();
+
+  // Convert the query string into a URLSearchParams object
+  const queryParams = new URLSearchParams(location.search);
+
+  // Get the value of 'template_id' from query parameters
+  const templateId = queryParams.get("template_id");
   const [data, setData] = useState<RowData[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -72,8 +81,9 @@ export default function FMCATable() {
   const [paginatedData, setPaginatedData] = useState<RowData[]>([]);
 
   const apiKey = process.env.REACT_APP_API_KEY;
-
+  const PlotlyRenderers = createPlotlyRenderers(Plot);
   // Fetch data from the spreadsheet
+
   const fetchData = async () => {
     try {
       setIsDataLoading(true);
@@ -130,6 +140,85 @@ export default function FMCATable() {
     // eslint-disable-next-line
   }, []);
 
+  // Save pivot table state to local storage
+  const saveTemplate = async () => {
+    localStorage.setItem("pivotTableState", JSON.stringify(pivotState));
+    try {
+      const response = await axios.post(
+        "https://fcma-backend.onrender.com/api/pivot-state/save",
+        {
+          state: pivotState,
+        }
+      );
+      // Assuming response.data.template_id contains the template_id
+      const templateId = response.data.templateId;
+
+      if (templateId) {
+        // Create a new URL object based on the current location
+        const url = new URL(window.location.href);
+
+        // Set or update the template_id query parameter
+        url.searchParams.set("template_id", templateId);
+
+        // Use the history API to change the URL without reloading the page
+        window.history.pushState({}, "", url);
+
+        // Alternatively, you could use window.location.replace(url) if you prefer replacing the entire URL.
+      }
+    } catch (error) {}
+    alert("Template saved!");
+  };
+
+  // Reset pivot table state to default
+  const resetTemplate = () => {
+    setPivotState(defaultPivotState);
+    localStorage.removeItem("pivotTableState");
+    const url = new URL(window.location.href);
+    url.search = ""; // Clear all query parameters
+    window.history.replaceState({}, "", url.toString());
+  };
+
+  const fetchPivotState = async () => {
+    try {
+      const response = await axios.get(
+        `https://fcma-backend.onrender.com/api/pivot-state/${templateId}`
+      );
+      setPivotState(response.data.state);
+    } catch (error) {}
+  };
+
+  // Check for saved state in local storage
+  useEffect(() => {
+    const savedState = localStorage.getItem("pivotTableState");
+    if (templateId) {
+      fetchPivotState();
+      return;
+    } else if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      if (parsedState) {
+        setPivotState(parsedState);
+        return;
+      }
+    } else {
+      setPivotState(defaultPivotState); // Use default state if invalid
+    }
+    // eslint-disable-next-line
+  }, []);
+
+  // Handle page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // e.preventDefault();
+      // e.returnValue = ""; // This is required for some browsers to show the prompt
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
   // Update page number
   const handlePageChange = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -184,6 +273,26 @@ export default function FMCATable() {
   return (
     <>
       <TopAppBar />
+      <Box
+        sx={{
+          padding: "8px",
+          display: "flex",
+          justifyContent: "flex-end", // Aligns buttons to the right
+          position: "relative",
+        }}
+      >
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={saveTemplate}
+          sx={{ marginRight: "8px" }}
+        >
+          Save Template
+        </Button>
+        <Button variant="contained" color="secondary" onClick={resetTemplate}>
+          Reset
+        </Button>
+      </Box>
       <Box sx={{ margin: "2.5rem 2rem 2rem" }}>
         <Paper sx={{ width: "100%", overflow: "hidden" }}>
           <TableContainer
@@ -209,14 +318,20 @@ export default function FMCATable() {
             ) : (
               <>
                 <PivotTableUI
+                  unusedOrientationCutoff={200}
                   data={pivotData}
                   onChange={(s: any) => {
                     const newState = { ...s };
                     delete newState.data;
+                    delete newState["aggregators"];
+                    delete newState["renderers"];
+                    delete newState["rendererOptions"];
+                    delete newState["localeStrings"];
                     setPivotState(newState);
                   }}
                   {...pivotState}
-                  renderers={{ ...TableRenderers }}
+                  renderers={Object.assign({}, TableRenderers, PlotlyRenderers)}
+                  plotlyOptions={{ width: 1600 }}
                 />
                 <TablePagination
                   rowsPerPageOptions={[10, 25, 100]}
