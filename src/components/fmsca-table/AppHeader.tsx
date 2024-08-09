@@ -1,12 +1,24 @@
 // libraries
 import { TableCell, TableHead, TableRow } from "@mui/material";
-import { headerColumns } from "../../config/constants";
+import { COLUMNS_TO_INCLUDE, formatColumnName, headerColumns } from "../../config/constants";
 
-const TableHeader = () => {
+interface TableHeaderProps {
+  onRequestSort: (property: string) => void;
+  order: 'asc' | 'desc';
+  orderBy: string;
+}
+
+const TableHeader = ({ onRequestSort, order, orderBy }: TableHeaderProps) => {
+  const handleSortRequest = (property: string) => {
+
+    console.log("colname", property)
+    onRequestSort(property);
+  };
+
   return (
     <TableHead>
       <TableRow>
-        {headerColumns.map((colName) => (
+        {COLUMNS_TO_INCLUDE.map((colName) => (
           <TableCell
             key={colName}
             style={{
@@ -16,9 +28,15 @@ const TableHeader = () => {
               textTransform: "capitalize",
               fontSize: ".8125rem",
               padding: "10px",
+              cursor: 'pointer', // Add cursor style for better UX
             }}
+            onClick={() => handleSortRequest(colName)}
+            sortDirection={orderBy === colName ? order : false}
           >
-            {colName}
+            {formatColumnName(colName)}
+            {orderBy === colName ? (
+              order === 'desc' ? ' ▼' : ' ▲'
+            ) : null}
           </TableCell>
         ))}
       </TableRow>
