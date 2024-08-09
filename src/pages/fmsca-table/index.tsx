@@ -687,10 +687,10 @@ export default function FMCATable() {
                             const rowId = row.legal_name; // Using 'phone' as the unique identifier
 
                             return (
-                              <TableRow hover role="checkbox" tabIndex={-1} key={rowId}>
+                              <TableRow hover role="checkbox" tabIndex={-1} key={index}>
                                 {Object.keys(data[0] || {}).map((column) => {
                                   const value = row[column];
-                                  const cellKey = `${rowId}-${column}`; // Unique key using phone and column name
+                                  const cellKey = `${index}-${column}`; // Unique key using phone and column name
                                   const isDateColumn = column === 'created_dt' || column === 'data_source_modified_dt' || column === 'out_of_service_date';
                                   return (
                                     <TableCell key={cellKey} sx={{ padding: 1, width: '200px' }}>
@@ -713,7 +713,7 @@ export default function FMCATable() {
 
                                             // Update the data state with the new cell value
                                             setData((prevData) => {
-                                              const rowIndex = prevData.findIndex((row) => row.phone === rowId);
+                                              const rowIndex = prevData.findIndex((row) => row.legal_name === rowId);
                                               if (rowIndex !== -1) {
                                                 const updatedData = [...prevData];
                                                 updatedData[rowIndex] = {
