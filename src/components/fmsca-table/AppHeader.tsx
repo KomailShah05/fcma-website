@@ -22,12 +22,14 @@ const TableHeader = ({ onRequestSort, order, orderBy }: TableHeaderProps) => {
           <TableCell
             key={colName}
             style={{
-              minWidth: 100,
+              minWidth: 200,
               background: "#e3f2fd",
               fontWeight: "700",
               textTransform: "capitalize",
               fontSize: ".8125rem",
               padding: "10px",
+
+
               cursor: 'pointer', // Add cursor style for better UX
             }}
             onClick={() => handleSortRequest(colName)}
